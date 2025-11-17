@@ -488,8 +488,6 @@ export interface BaseCollectionConfig<
    * @param params Object containing transaction and collection information
    * @returns Promise that should resolve to void
    * @deprecated Returning values from this handler is deprecated. Use collection utilities for manual refetch/sync.
-   * For Query Collections, use `await collection.utils.refetch()` after your operation.
-   * For Electric Collections, use the txid-based matching with `collection.utils.awaitTxId()`.
    *
    * @example
    * // Basic insert handler
@@ -505,6 +503,15 @@ export interface BaseCollectionConfig<
    *   await api.createTodo(newItem)
    *   // Manually trigger refetch to sync server state
    *   await collection.utils.refetch()
+   * }
+   *
+   * @example
+   * // Insert handler with manual sync wait (Electric Collection)
+   * onInsert: async ({ transaction, collection }) => {
+   *   const newItem = transaction.mutations[0].modified
+   *   const result = await api.createTodo(newItem)
+   *   // Manually wait for txid to sync
+   *   await collection.utils.awaitTxId(result.txid)
    * }
    *
    * @example
@@ -535,8 +542,6 @@ export interface BaseCollectionConfig<
    * @param params Object containing transaction and collection information
    * @returns Promise that should resolve to void
    * @deprecated Returning values from this handler is deprecated. Use collection utilities for manual refetch/sync.
-   * For Query Collections, use `await collection.utils.refetch()` after your operation.
-   * For Electric Collections, use the txid-based matching with `collection.utils.awaitTxId()`.
    *
    * @example
    * // Basic update handler
@@ -553,6 +558,15 @@ export interface BaseCollectionConfig<
    *   await api.updateTodo(mutation.original.id, changes)
    *   // Manually trigger refetch to sync server state
    *   await collection.utils.refetch()
+   * }
+   *
+   * @example
+   * // Update handler with manual sync wait (Electric Collection)
+   * onUpdate: async ({ transaction, collection }) => {
+   *   const mutation = transaction.mutations[0]
+   *   const result = await api.updateTodo(mutation.original.id, mutation.changes)
+   *   // Manually wait for txid to sync
+   *   await collection.utils.awaitTxId(result.txid)
    * }
    *
    * @example
@@ -585,8 +599,6 @@ export interface BaseCollectionConfig<
    * @param params Object containing transaction and collection information
    * @returns Promise that should resolve to void
    * @deprecated Returning values from this handler is deprecated. Use collection utilities for manual refetch/sync.
-   * For Query Collections, use `await collection.utils.refetch()` after your operation.
-   * For Electric Collections, use the txid-based matching with `collection.utils.awaitTxId()`.
    *
    * @example
    * // Basic delete handler
@@ -602,6 +614,15 @@ export interface BaseCollectionConfig<
    *   await api.deleteTodos(keysToDelete)
    *   // Manually trigger refetch to sync server state
    *   await collection.utils.refetch()
+   * }
+   *
+   * @example
+   * // Delete handler with manual sync wait (Electric Collection)
+   * onDelete: async ({ transaction, collection }) => {
+   *   const mutation = transaction.mutations[0]
+   *   const result = await api.deleteTodo(mutation.original.id)
+   *   // Manually wait for txid to sync
+   *   await collection.utils.awaitTxId(result.txid)
    * }
    *
    * @example
