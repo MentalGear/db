@@ -883,7 +883,7 @@ function createElectricSync<T extends Row<unknown>>(
       }
 
       rowTagSet.add(tag)
-      addTagToIndex(parsedTag, rowId, tagIndex, tagLength)      
+      addTagToIndex(parsedTag, rowId, tagIndex, tagLength)
     }
   }
 
@@ -1015,7 +1015,7 @@ function createElectricSync<T extends Row<unknown>>(
     begin: () => void,
     write: (message: Omit<ChangeMessage<T>, `key`>) => void,
     transactionStarted: boolean,
-    transactionState: Map<RowId, T>
+    transactionState: Map<RowId, T>,
   ): boolean => {
     if (tagLength === undefined) {
       debug(
@@ -1342,7 +1342,7 @@ function createElectricSync<T extends Row<unknown>>(
                 begin,
                 write,
                 transactionStarted,
-                transactionState
+                transactionState,
               )
             }
           } else if (isMustRefetchMessage(message)) {
@@ -1411,7 +1411,7 @@ function createElectricSync<T extends Row<unknown>>(
                   begin,
                   write,
                   transactionStarted,
-                  transactionState
+                  transactionState,
                 )
               }
             }
