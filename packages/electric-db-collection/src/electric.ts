@@ -12,8 +12,8 @@ import {
   StreamAbortedError,
   TimeoutWaitingForMatchError,
   TimeoutWaitingForTxIdError,
-} from "./errors"
-import { compileSQL } from "./sql-compiler"
+} from './errors'
+import { compileSQL } from './sql-compiler'
 import {
   addTagToIndex,
   findRowsMatchingPattern,
@@ -21,14 +21,14 @@ import {
   isMoveOutMessage,
   removeTagFromIndex,
   tagMatchesPattern,
-} from "./tag-index"
+} from './tag-index'
 import type {
   MoveOutPattern,
   MoveTag,
   ParsedMoveTag,
   RowId,
   TagIndex,
-} from "./tag-index"
+} from './tag-index'
 import type {
   BaseCollectionConfig,
   ChangeMessage,
@@ -862,7 +862,7 @@ function createElectricSync<T extends Row<unknown>>(
   const addTagsToRow = (
     tags: Array<MoveTag>,
     rowId: RowId,
-    rowTagSet: Set<MoveTag>
+    rowTagSet: Set<MoveTag>,
   ): void => {
     for (const tag of tags) {
       const parsedTag = parseTag(tag)
@@ -877,7 +877,7 @@ function createElectricSync<T extends Row<unknown>>(
       const currentTagLength = getTagLength(parsedTag)
       if (currentTagLength !== tagLength) {
         debug(
-          `${collectionId ? `[${collectionId}] ` : ``}Tag length mismatch: expected ${tagLength}, got ${currentTagLength}`
+          `${collectionId ? `[${collectionId}] ` : ``}Tag length mismatch: expected ${tagLength}, got ${currentTagLength}`,
         )
         continue
       }
@@ -893,7 +893,7 @@ function createElectricSync<T extends Row<unknown>>(
   const removeTagsFromRow = (
     removedTags: Array<MoveTag>,
     rowId: RowId,
-    rowTagSet: Set<MoveTag>
+    rowTagSet: Set<MoveTag>,
   ): void => {
     if (tagLength === undefined) {
       return
@@ -917,7 +917,7 @@ function createElectricSync<T extends Row<unknown>>(
   const processTagsForChangeMessage = (
     tags: Array<MoveTag> | undefined,
     removedTags: Array<MoveTag> | undefined,
-    rowId: RowId
+    rowId: RowId,
   ): Set<MoveTag> => {
     // Initialize tag set for this row if it doesn't exist (needed for checking deletion)
     if (!rowTagSets.has(rowId)) {
@@ -981,7 +981,7 @@ function createElectricSync<T extends Row<unknown>>(
    */
   const removeMatchingTagsFromRow = (
     rowId: RowId,
-    pattern: MoveOutPattern
+    pattern: MoveOutPattern,
   ): boolean => {
     const rowTagSet = rowTagSets.get(rowId)
     if (!rowTagSet) {
@@ -1014,11 +1014,11 @@ function createElectricSync<T extends Row<unknown>>(
     collection: Collection<T, string | number, any, any, any>,
     begin: () => void,
     write: (message: Omit<ChangeMessage<T>, `key`>) => void,
-    transactionStarted: boolean
+    transactionStarted: boolean,
   ): boolean => {
     if (tagLength === undefined) {
       debug(
-        `${collectionId ? `[${collectionId}] ` : ``}Received move-out message but no tag length set yet, ignoring`
+        `${collectionId ? `[${collectionId}] ` : ``}Received move-out message but no tag length set yet, ignoring`,
       )
       return transactionStarted
     }
@@ -1287,7 +1287,7 @@ function createElectricSync<T extends Row<unknown>>(
               collection,
               begin,
               write,
-              transactionStarted
+              transactionStarted,
             )
           } else if (isMustRefetchMessage(message)) {
             debug(

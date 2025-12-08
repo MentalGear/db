@@ -1,5 +1,5 @@
 // Import Row and Message types for the isEventMessage function
-import type { Message, Row } from "@electric-sql/client"
+import type { Message, Row } from '@electric-sql/client'
 
 export type RowId = string | number
 export type MoveTag = string
@@ -75,7 +75,7 @@ export function getTagLength(tag: ParsedMoveTag): number {
  */
 export function tagMatchesPattern(
   tag: ParsedMoveTag,
-  pattern: MoveOutPattern
+  pattern: MoveOutPattern,
 ): boolean {
   const { pos, value } = getPositionalValue(pattern)
   const tagValue = getValue(tag, pos)
@@ -89,7 +89,7 @@ export function addTagToIndex(
   tag: ParsedMoveTag,
   rowId: RowId,
   index: TagIndex,
-  tagLength: number
+  tagLength: number,
 ): void {
   for (let i = 0; i < tagLength; i++) {
     const value = getValue(tag, i)
@@ -114,7 +114,7 @@ export function removeTagFromIndex(
   tag: ParsedMoveTag,
   rowId: RowId,
   index: TagIndex,
-  tagLength: number
+  tagLength: number,
 ): void {
   for (let i = 0; i < tagLength; i++) {
     const value = getValue(tag, i)
@@ -142,7 +142,7 @@ export function removeTagFromIndex(
  */
 export function findRowsMatchingPattern(
   pattern: MoveOutPattern,
-  index: TagIndex
+  index: TagIndex,
 ): Set<RowId> {
   const { pos, value } = getPositionalValue(pattern)
   const positionIndex = index[pos]
@@ -154,7 +154,7 @@ export function findRowsMatchingPattern(
  * Check if a message is an event message with move-out event
  */
 export function isMoveOutMessage<T extends Row<unknown>>(
-  message: Message<T>
+  message: Message<T>,
 ): message is Message<T> & EventMessage {
   return message.headers.event === `move-out`
 }

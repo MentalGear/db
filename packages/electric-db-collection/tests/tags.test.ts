@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createCollection } from "@tanstack/db"
-import { electricCollectionOptions } from "../src/electric"
-import type { ElectricCollectionUtils } from "../src/electric"
-import type { Collection } from "@tanstack/db"
-import type { Message, Row } from "@electric-sql/client"
-import type { StandardSchemaV1 } from "@standard-schema/spec"
-import type { MoveOutPattern } from "../src/tag-index"
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createCollection } from '@tanstack/db'
+import { electricCollectionOptions } from '../src/electric'
+import type { ElectricCollectionUtils } from '../src/electric'
+import type { Collection } from '@tanstack/db'
+import type { Message, Row } from '@electric-sql/client'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { MoveOutPattern } from '../src/tag-index'
 
 // Mock the ShapeStream module
 const mockSubscribe = vi.fn()
@@ -93,7 +93,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Test User` }]])
+      new Map([[1, { id: 1, name: `Test User` }]]),
     )
     expect(collection.status).toEqual(`ready`)
 
@@ -113,7 +113,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Test User` }]])
+      new Map([[1, { id: 1, name: `Test User` }]]),
     )
 
     // Remove last tag - row should be garbage collected
@@ -153,7 +153,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Test User` }]])
+      new Map([[1, { id: 1, name: `Test User` }]]),
     )
 
     // Update with additional tags
@@ -173,7 +173,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Updated User` }]])
+      new Map([[1, { id: 1, name: `Updated User` }]]),
     )
 
     // Remove first tag - row should still exist
@@ -192,7 +192,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Updated User` }]])
+      new Map([[1, { id: 1, name: `Updated User` }]]),
     )
 
     // Remove last tag - row should be garbage collected
@@ -233,7 +233,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Test User` }]])
+      new Map([[1, { id: 1, name: `Test User` }]]),
     )
 
     // Remove first tag - row should be gone
@@ -947,7 +947,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Test User` }]])
+      new Map([[1, { id: 1, name: `Test User` }]]),
     )
 
     // Send must-refetch
@@ -998,7 +998,7 @@ describe(`Electric Tag Tracking and GC`, () => {
       new Map([
         [1, { id: 1, name: `Test User` }],
         [2, { id: 2, name: `User 2` }],
-      ])
+      ]),
     )
 
     // Remove tag2 and check that the row is gone
@@ -1040,7 +1040,7 @@ describe(`Electric Tag Tracking and GC`, () => {
 
     // Row should exist even without tags
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Test User` }]])
+      new Map([[1, { id: 1, name: `Test User` }]]),
     )
 
     // Update the row without tags
@@ -1060,7 +1060,7 @@ describe(`Electric Tag Tracking and GC`, () => {
 
     // Row should still exist
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Updated Test User` }]])
+      new Map([[1, { id: 1, name: `Updated Test User` }]]),
     )
 
     // Insert a row with tags
@@ -1084,7 +1084,7 @@ describe(`Electric Tag Tracking and GC`, () => {
       new Map([
         [1, { id: 1, name: `Updated Test User` }],
         [2, { id: 2, name: `User 2` }],
-      ])
+      ]),
     )
 
     // Move out that matches the tag
@@ -1132,7 +1132,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Test User` }]])
+      new Map([[1, { id: 1, name: `Test User` }]]),
     )
 
     // Update: remove tag1, add tag2
@@ -1153,7 +1153,7 @@ describe(`Electric Tag Tracking and GC`, () => {
 
     // Row should still exist (has tag2)
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Updated User` }]])
+      new Map([[1, { id: 1, name: `Updated User` }]]),
     )
   })
 
@@ -1177,7 +1177,7 @@ describe(`Electric Tag Tracking and GC`, () => {
     ])
 
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Test User` }]])
+      new Map([[1, { id: 1, name: `Test User` }]]),
     )
 
     // Delete the row (without tags)
@@ -1215,7 +1215,7 @@ describe(`Electric Tag Tracking and GC`, () => {
 
     // Row should exist with new tag
     expect(collection.state).toEqual(
-      new Map([[1, { id: 1, name: `Re-inserted User` }]])
+      new Map([[1, { id: 1, name: `Re-inserted User` }]]),
     )
 
     // Update the row with removed_tags including its new tag (tag2)

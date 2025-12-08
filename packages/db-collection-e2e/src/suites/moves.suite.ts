@@ -5,15 +5,15 @@
  * Only Electric collection supports tags (via shapes with subqueries)
  */
 
-import { randomUUID } from "node:crypto"
-import { beforeAll, describe, expect, it } from "vitest"
-import { createCollection } from "@tanstack/db"
-import { electricCollectionOptions } from "@tanstack/electric-db-collection"
-import { waitFor } from "../utils/helpers"
-import type { E2ETestConfig } from "../types"
-import type { Client } from "pg"
-import type { Collection } from "@tanstack/db"
-import type { ElectricCollectionUtils } from "@tanstack/electric-db-collection"
+import { randomUUID } from 'node:crypto'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { createCollection } from '@tanstack/db'
+import { electricCollectionOptions } from '@tanstack/electric-db-collection'
+import { waitFor } from '../utils/helpers'
+import type { E2ETestConfig } from '../types'
+import type { Client } from 'pg'
+import type { Collection } from '@tanstack/db'
+import type { ElectricCollectionUtils } from '@tanstack/electric-db-collection'
 
 interface TagsTestConfig extends E2ETestConfig {
   tagsTestSetup: {
@@ -48,7 +48,7 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
     // This creates a shape: posts WHERE userId IN (SELECT id FROM users WHERE isActive = true)
     // When a user's isActive changes, posts will move in/out of this shape
     function createPostsByActiveUsersCollection(
-      id: string = `tags-posts-active-users-${Date.now()}`
+      id: string = `tags-posts-active-users-${Date.now()}`,
     ): Collection<any, string, ElectricCollectionUtils, any, any> {
       // Remove quotes from table names for the WHERE clause SQL
       const usersTableUnquoted = usersTable.replace(/"/g, ``)
@@ -69,13 +69,13 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
           syncMode: `eager`,
           getKey: (item: any) => item.id,
           startSync: true,
-        })
+        }),
       ) as any
     }
 
     // Helper to wait for collection to be ready
     async function waitForReady(
-      collection: Collection<any, any, any, any, any>
+      collection: Collection<any, any, any, any, any>,
     ) {
       await collection.preload()
       await waitFor(() => collection.status === `ready`, {
@@ -88,7 +88,7 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
     async function waitForItem(
       collection: Collection<any, any, any, any, any>,
       itemId: string,
-      timeout: number = 10000
+      timeout: number = 10000,
     ) {
       await waitFor(() => collection.has(itemId), {
         timeout,
@@ -100,7 +100,7 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
     async function waitForItemRemoved(
       collection: Collection<any, any, any, any, any>,
       itemId: string,
-      timeout: number = 2000
+      timeout: number = 2000,
     ) {
       await waitFor(() => !collection.has(itemId), {
         timeout,
@@ -413,7 +413,7 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
       // Update post title (tags might change but post stays in subquery since user is still active)
       await dbClient.query(
         `UPDATE ${postsTable} SET title = $1 WHERE id = $2`,
-        [`Updated Tagged Post`, postId]
+        [`Updated Tagged Post`, postId],
       )
 
       // Wait a bit and verify post still exists
@@ -637,15 +637,15 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
       try {
         await dbClient.query(
           `UPDATE ${usersTable} SET "isActive" = $1 WHERE id = $2`,
-          [true, userId1]
+          [true, userId1],
         )
         await dbClient.query(
           `UPDATE ${postsTable} SET title = $1 WHERE id = $2`,
-          [`Updated Post 2`, postId2]
+          [`Updated Post 2`, postId2],
         )
         await dbClient.query(
           `UPDATE ${usersTable} SET "isActive" = $1 WHERE id = $2`,
-          [false, userId3]
+          [false, userId3],
         )
         await dbClient.query(`COMMIT`)
       } catch (error) {
