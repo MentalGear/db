@@ -576,7 +576,7 @@ importers:
         version: 0.45.0(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)
       drizzle-zod:
         specifier: ^0.8.3
-        version: 0.8.3(drizzle-orm@0.45.0(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7))(zod@3.25.76)
+        version: 0.8.3(drizzle-orm@0.45.0(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7))(zod@4.1.13)
       express:
         specifier: ^4.22.1
         version: 4.22.1
@@ -769,8 +769,8 @@ importers:
   packages/electric-db-collection:
     dependencies:
       '@electric-sql/client':
-        specifier: https://pkg.pr.new/@electric-sql/client@3497
-        version: https://pkg.pr.new/@electric-sql/client@3497
+        specifier: https://pkg.pr.new/@electric-sql/client@3561
+        version: https://pkg.pr.new/@electric-sql/client@3561
       '@standard-schema/spec':
         specifier: ^1.0.0
         version: 1.0.0
@@ -876,8 +876,8 @@ importers:
         version: 1.6.0(react@19.2.1)
     devDependencies:
       '@electric-sql/client':
-        specifier: 1.2.0
-        version: 1.2.0
+        specifier: https://pkg.pr.new/@electric-sql/client@3561
+        version: https://pkg.pr.new/@electric-sql/client@3561
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -941,8 +941,8 @@ importers:
         version: link:../db
     devDependencies:
       '@electric-sql/client':
-        specifier: 1.2.0
-        version: 1.2.0
+        specifier: https://pkg.pr.new/@electric-sql/client@3561
+        version: https://pkg.pr.new/@electric-sql/client@3561
       '@solidjs/testing-library':
         specifier: ^0.8.10
         version: 0.8.10(solid-js@1.9.10)
@@ -1022,8 +1022,8 @@ importers:
         version: link:../db
     devDependencies:
       '@electric-sql/client':
-        specifier: 1.2.0
-        version: 1.2.0
+        specifier: https://pkg.pr.new/@electric-sql/client@3561
+        version: https://pkg.pr.new/@electric-sql/client@3561
       '@vitejs/plugin-vue':
         specifier: ^6.0.2
         version: 6.0.2(vite@7.2.7(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.90.0)(tsx@4.21.0)(yaml@2.8.2))(vue@3.5.25(typescript@5.9.3))
@@ -1545,12 +1545,9 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@electric-sql/client@1.2.0':
-    resolution: {integrity: sha512-K/MEjti3UF4aPKJJqO6Tp4f5noqc2/3icU1NPdpKfQaHwbzGtEX2aJmL2vxTEUJbfyrISkPKbOPnrz/lAvw1Vg==}
-
-  '@electric-sql/client@https://pkg.pr.new/@electric-sql/client@3497':
-    resolution: {tarball: https://pkg.pr.new/@electric-sql/client@3497}
-    version: 1.1.5
+  '@electric-sql/client@https://pkg.pr.new/@electric-sql/client@3561':
+    resolution: {tarball: https://pkg.pr.new/@electric-sql/client@3561}
+    version: 1.2.0
 
   '@emnapi/core@1.7.1':
     resolution: {integrity: sha512-o1uhUASyo921r2XtHYOHy7gdkGLge8ghBEQHMWmyJFoXlpU58kIrhhN3w26lpQb6dspetweapMn2CSNwQ8I4wg==}
@@ -9477,13 +9474,7 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@electric-sql/client@1.2.0':
-    dependencies:
-      '@microsoft/fetch-event-source': 2.0.1
-    optionalDependencies:
-      '@rollup/rollup-darwin-arm64': 4.53.3
-
-  '@electric-sql/client@https://pkg.pr.new/@electric-sql/client@3497':
+  '@electric-sql/client@https://pkg.pr.new/@electric-sql/client@3561':
     dependencies:
       '@microsoft/fetch-event-source': 2.0.1
     optionalDependencies:
