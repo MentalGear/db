@@ -277,7 +277,9 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
           expect(collection.get(postId)?.title).toBe(`Inactive User Post`)
 
           // Clean up
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId,
+          ])
           await config.mutations.deleteUser(userId)
           await collection.cleanup()
         })
@@ -328,7 +330,9 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
           expect(collection.has(postId)).toBe(false)
 
           // Clean up
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId,
+          ])
           await config.mutations.deleteUser(userId)
           await collection.cleanup()
         })
@@ -381,7 +385,9 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
           expect(collection.has(postId)).toBe(true)
 
           // Clean up
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId,
+          ])
           await config.mutations.deleteUser(userId)
           await collection.cleanup()
         })
@@ -435,7 +441,9 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
           expect(collection.get(postId)?.title).toBe(`Updated Tagged Post`)
 
           // Clean up
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId,
+          ])
           await config.mutations.deleteUser(userId)
           await collection.cleanup()
         })
@@ -478,7 +486,9 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
           expect(collection.has(postId)).toBe(true)
 
           // Delete post in Postgres
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId,
+          ])
 
           // Wait for post to be removed
           await waitForItemRemoved(collection, postId)
@@ -547,7 +557,9 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
           expect(collection2.has(postId)).toBe(false)
 
           // Clean up
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId,
+          ])
           await config.mutations.deleteUser(userId)
           await collection2.cleanup()
         })
@@ -674,9 +686,15 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
           expect(collection.has(postId3)).toBe(false) // post3: moved out (user3 inactive)
 
           // Clean up
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId1])
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId2])
-          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [postId3])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId1,
+          ])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId2,
+          ])
+          await dbClient.query(`DELETE FROM ${postsTable} WHERE id = $1`, [
+            postId3,
+          ])
           await config.mutations.deleteUser(userId1)
           await config.mutations.deleteUser(userId2)
           await config.mutations.deleteUser(userId3)
