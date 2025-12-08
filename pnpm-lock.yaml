@@ -1550,7 +1550,7 @@ packages:
 
   '@electric-sql/client@https://pkg.pr.new/@electric-sql/client@3497':
     resolution: {tarball: https://pkg.pr.new/@electric-sql/client@3497}
-    version: 1.1.5
+    version: 1.2.0
 
   '@emnapi/core@1.7.1':
     resolution: {integrity: sha512-o1uhUASyo921r2XtHYOHy7gdkGLge8ghBEQHMWmyJFoXlpU58kIrhhN3w26lpQb6dspetweapMn2CSNwQ8I4wg==}
