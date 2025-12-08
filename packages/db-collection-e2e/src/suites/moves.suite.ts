@@ -125,12 +125,15 @@ export function createMovesTestSuite(getConfig: () => Promise<TagsTestConfig>) {
     ) {
       // Use eager collection since it continuously syncs all data
       const usersCollection = config.collections.eager.users
-      await waitFor(() => {
-        return userIds.every((userId) => usersCollection.has(userId))
-      }, {
-        timeout,
-        message: `Users ${userIds.join(', ')} did not sync to collection`,
-      })
+      await waitFor(
+        () => {
+          return userIds.every((userId) => usersCollection.has(userId))
+        },
+        {
+          timeout,
+          message: `Users ${userIds.join(', ')} did not sync to collection`,
+        },
+      )
     }
 
     // Helper function to run all tests for a given sync mode
