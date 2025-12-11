@@ -332,7 +332,10 @@ export type ChangeMessageOrDeleteKeyMessage<
   TKey extends string | number = string | number,
 > = Omit<ChangeMessage<T>, `key`> | DeleteKeyMessage<TKey>
 
-export type OptimisticChangeMessage<T extends object = Record<string, unknown>, TKey extends string | number = string | number> =
+export type OptimisticChangeMessage<
+  T extends object = Record<string, unknown>,
+  TKey extends string | number = string | number,
+> =
   | (ChangeMessage<T> & {
       // Is this change message part of an active transaction. Only applies to optimistic changes.
       isActive?: boolean
@@ -869,4 +872,5 @@ export type WritableDeep<T> = T extends BuiltIns
             ? WritableObjectDeep<T>
             : unknown
 
-export type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> &
+  Partial<Pick<T, K>>
