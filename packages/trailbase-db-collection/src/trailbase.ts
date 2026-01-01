@@ -259,7 +259,8 @@ export function trailBaseCollectionOptions<
           // For function serializers, we need to handle partial items carefully
           // We serialize and then extract only the keys that were in the partial
           const keys = Object.keys(item) as Array<keyof TItem>
-          const full = config.serialize(item as TItem) as TRecord
+          // Use serialIns which is already captured as the narrowed function version
+          const full = serialIns(item as TItem)
           const result: Partial<TRecord> = {}
           for (const key of keys) {
             // Map the key if there's a known mapping (simplified approach)
