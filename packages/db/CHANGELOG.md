@@ -1,5 +1,121 @@
 # @tanstack/db
 
+## 0.5.16
+
+### Patch Changes
+
+- Fix useLiveInfiniteQuery not updating when deleting an item from a partial page with DESC order. ([#970](https://github.com/TanStack/db/pull/970))
+
+  The bug occurred when using `useLiveInfiniteQuery` with `orderBy(..., 'desc')` and having fewer items than the `pageSize`. Deleting an item would not update the live result - the deleted item would remain visible until another change occurred.
+
+  The root cause was in `requestLimitedSnapshot` where `biggestObservedValue` was incorrectly set to the full row object instead of the indexed value (e.g., the salary field used for ordering). This caused the BTree comparison to fail, resulting in the same data being loaded multiple times with each item having a multiplicity > 1. When an item was deleted, its multiplicity would decrement but not reach 0, so it remained visible.
+
+## 0.5.15
+
+### Patch Changes
+
+- fix: prevent duplicate inserts from reaching D2 pipeline in live queries ([#1054](https://github.com/TanStack/db/pull/1054))
+
+  Added defensive measures to prevent duplicate INSERT events from reaching the D2 (differential dataflow) pipeline, which could cause items to not disappear when deleted (due to multiplicity going from 2 to 1 instead of 1 to 0).
+
+  Changes:
+  - Added `sentToD2Keys` tracking in `CollectionSubscriber` to filter duplicate inserts at the D2 pipeline entry point
+  - Fixed `includeInitialState` handling to only pass when `true`, preventing internal lazy-loading subscriptions from incorrectly disabling filtering
+  - Clear `sentToD2Keys` on truncate to allow re-inserts after collection reset
+
+## 0.5.14
+
+### Patch Changes
+
+- Fix subscriptions not re-requesting data after truncate in on-demand sync mode. When a must-refetch occurs, subscriptions now buffer changes and re-request their previously loaded subsets, preventing a flash of missing content. ([#1043](https://github.com/TanStack/db/pull/1043))
+
+  Key improvements:
+  - Buffer changes atomically: deletes and inserts are emitted together in a single callback
+  - Correct event ordering: defers loadSubset calls to a microtask so truncate deletes are buffered before refetch inserts
+  - Gated on on-demand mode: only buffers when there's an actual loadSubset handler
+  - Fixes delete filter edge case: skips delete filter during truncate buffering when `sentKeys` is empty
+
+## 0.5.13
+
+### Patch Changes
+
+- Allow rows to be deleted by key by using the write function passed to a collection's sync function. ([#1003](https://github.com/TanStack/db/pull/1003))
+
+- fix: deleted items not disappearing from live queries with `.limit()` ([#1044](https://github.com/TanStack/db/pull/1044))
+
+  Fixed a bug where deleting an item from a live query with `.orderBy()` and `.limit()` would not remove it from the query results. The `subscribeChanges` callback would never fire with a delete event.
+
+  The issue was caused by duplicate inserts reaching the D2 pipeline, which corrupted the multiplicity tracking used by `TopKWithFractionalIndexOperator`. A delete would decrement multiplicity from 2 to 1 instead of 1 to 0, so the item remained visible.
+
+  Fixed by ensuring `sentKeys` is updated before callbacks execute (preventing race conditions) and filtering duplicate inserts in `filterAndFlipChanges`.
+
+## 0.5.12
+
+### Patch Changes
+
+- Enhanced LoadSubsetOptions with separate cursor expressions and offset for flexible pagination. ([#960](https://github.com/TanStack/db/pull/960))
+
+  **⚠️ Breaking Change for Custom Sync Layers / Query Collections:**
+
+  `LoadSubsetOptions.where` no longer includes cursor expressions for pagination. If you have a custom sync layer or query collection that implements `loadSubset`, you must now handle pagination separately:
+  - **Cursor-based pagination:** Use the new `cursor` property (`cursor.whereFrom` and `cursor.whereCurrent`) and combine them with `where` yourself
+  - **Offset-based pagination:** Use the new `offset` property
+
+  Previously, cursor expressions were baked into the `where` clause. Now they are passed separately so sync layers can choose their preferred pagination strategy.
+
+  **Changes:**
+  - Added `CursorExpressions` type with `whereFrom`, `whereCurrent`, and optional `lastKey` properties
+  - Added `cursor` to `LoadSubsetOptions` for cursor-based pagination (separate from `where`)
+  - Added `offset` to `LoadSubsetOptions` for offset-based pagination support
+  - Electric sync layer now makes two parallel `requestSnapshot` calls when cursor is present:
+    - One for `whereCurrent` (all ties at boundary, no limit)
+    - One for `whereFrom` (rows after cursor, with limit)
+  - Query collection serialization now includes `offset` for query key generation
+  - Added `truncate` event to collections, emitted when synced data is truncated (e.g., after `must-refetch`)
+  - Fixed `setWindow` pagination: cursor expressions are now correctly built when paging through results
+  - Fixed offset tracking: `loadNextItems` now passes the correct window offset to prevent incorrect deduplication
+  - `CollectionSubscriber` now listens for `truncate` events to reset cursor tracking state
+
+  **Benefits:**
+  - Sync layers can choose between cursor-based or offset-based pagination strategies
+  - Electric can efficiently handle tie-breaking with two targeted requests
+  - Better separation of concerns between filtering (`where`) and pagination (`cursor`/`offset`)
+  - `setWindow` correctly triggers backend loading for subsequent pages in multi-column orderBy queries
+  - Cursor state is properly reset after truncation, preventing stale cursor data from being used
+
+- Ensure deterministic iteration order for collections and indexes. ([#958](https://github.com/TanStack/db/pull/958))
+
+  **SortedMap improvements:**
+  - Added key-based tie-breaking when values compare as equal, ensuring deterministic ordering
+  - Optimized to skip value comparison entirely when no comparator is provided (key-only sorting)
+  - Extracted `compareKeys` utility to `utils/comparison.ts` for reuse
+
+  **BTreeIndex improvements:**
+  - Keys within the same indexed value are now returned in deterministic sorted order
+  - Optimized with fast paths for empty sets and single-key sets to avoid unnecessary allocations
+
+  **CollectionStateManager changes:**
+  - Collections now always use `SortedMap` for `syncedData`, ensuring deterministic iteration order
+  - When no `compare` function is provided, entries are sorted by key only
+
+  This ensures that live queries with `orderBy` and `limit` produce stable, deterministic results even when multiple rows have equal sort values.
+
+- Enhanced multi-column orderBy support with lazy loading and composite cursor optimization. ([#926](https://github.com/TanStack/db/pull/926))
+
+  **Changes:**
+  - Create index on first orderBy column even for multi-column orderBy queries, enabling lazy loading with first-column ordering
+  - Pass multi-column orderBy to loadSubset with precise composite cursors (e.g., `or(gt(col1, v1), and(eq(col1, v1), gt(col2, v2)))`) for backend optimization
+  - Use wide bounds (first column only) for local index operations to ensure no rows are missed
+  - Use precise composite cursor for sync layer loadSubset to minimize data transfer
+
+  **Benefits:**
+  - Multi-column orderBy queries with limit now support lazy loading (previously disabled)
+  - Sync implementations (like Electric) can optimize queries using composite indexes on the backend
+  - Local collection uses first-column index efficiently while backend gets precise cursor
+
+- Updated dependencies [[`52c29fa`](https://github.com/TanStack/db/commit/52c29fa83b390ac26341dbf93e79ce0d59543686)]:
+  - @tanstack/db-ivm@0.1.14
+
 ## 0.5.11
 
 ### Patch Changes
