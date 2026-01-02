@@ -605,10 +605,10 @@ describe(`TrailBase Collection E2E Tests`, () => {
       },
       setup: async () => {},
       afterEach: async () => {
-        // Note: TrailBase's subscription-based sync is slower than Electric's shape streaming
-        // so we cannot efficiently reset collections between tests. The loadSubset deduplication
-        // state persists across tests, which can cause some ordering-dependent tests to fail.
-        // These are marked as known issues for TrailBase.
+        // Don't clean up on-demand collections between tests
+        // TrailBase's subscription-based sync is slower than Electric's shape streaming,
+        // and cleanup/restart causes timing issues that break tests.
+        // The DeduplicatedLoadSubset state persists, but this is acceptable for testing.
       },
       teardown: async () => {
         await Promise.all([

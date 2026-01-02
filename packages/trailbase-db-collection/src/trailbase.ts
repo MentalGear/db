@@ -336,7 +336,8 @@ export function trailBaseCollectionOptions<
             item as Partial<TItem & ShapeOf<TRecord>>,
           ) as Partial<TRecord>)
 
-  const abortController = new AbortController()
+  // AbortController is created fresh on each sync() call to support cleanup/restart
+  let currentAbortController: AbortController | null = null
 
   const seenIds = new Store(new Map<string, number>())
 
@@ -365,7 +366,7 @@ export function trailBaseCollectionOptions<
         reject(new TimeoutWaitingForIdsError(`Aborted while waiting for ids`))
       }
 
-      abortController.signal.addEventListener(`abort`, onAbort)
+      currentAbortController?.signal.addEventListener(`abort`, onAbort)
 
       const timeoutId = setTimeout(
         () => reject(new TimeoutWaitingForIdsError(ids.toString())),
@@ -375,7 +376,7 @@ export function trailBaseCollectionOptions<
       const unsubscribe = seenIds.subscribe((value) => {
         if (completed(value.currentVal)) {
           clearTimeout(timeoutId)
-          abortController.signal.removeEventListener(`abort`, onAbort)
+          currentAbortController?.signal.removeEventListener(`abort`, onAbort)
           unsubscribe()
           resolve()
         }
@@ -387,6 +388,14 @@ export function trailBaseCollectionOptions<
   const sync = {
     sync: (params: SyncParams) => {
       const { begin, write, commit, markReady } = params
+
+      // Create a fresh AbortController for this sync session
+      // This is essential for cleanup/restart to work correctly
+      currentAbortController = new AbortController()
+
+      // Reset state for fresh sync
+      seenIds.setState(new Map<string, number>())
+      fullSyncCompleted = false
 
       // Initial fetch.
       async function initialFetch() {
@@ -501,7 +510,7 @@ export function trailBaseCollectionOptions<
             fullSyncCompleted = true
           }
         } catch (e) {
-          abortController.abort()
+          currentAbortController?.abort()
           throw e
         }
 
@@ -572,9 +581,9 @@ export function trailBaseCollectionOptions<
           }
         }
 
-        abortController.signal.addEventListener(`abort`, onAbort)
+        currentAbortController?.signal.addEventListener(`abort`, onAbort)
         reader.closed.finally(() => {
-          abortController.signal.removeEventListener(`abort`, onAbort)
+          currentAbortController?.signal.removeEventListener(`abort`, onAbort)
           clearInterval(periodicCleanupTask)
         })
       }
@@ -679,7 +688,7 @@ export function trailBaseCollectionOptions<
       await awaitIds(ids)
     },
     utils: {
-      cancel: () => abortController.abort(),
+      cancel: () => currentAbortController?.abort(),
     },
   }
 }
