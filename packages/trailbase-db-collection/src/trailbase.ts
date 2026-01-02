@@ -7,7 +7,7 @@ import {
   ExpectedUpdateTypeError,
   TimeoutWaitingForIdsError,
 } from './errors'
-import type { Event, RecordApi } from 'trailbase'
+import type { Event, Filter, FilterOrComposite, ListOpts, RecordApi } from 'trailbase'
 
 import type {
   BaseCollectionConfig,
@@ -152,6 +152,166 @@ function decodeIdForSorting(rawId: unknown): string {
 }
 
 /**
+ * Convert LoadSubsetOptions.orderBy to TrailBase's order format.
+ * TrailBase uses prefix notation:
+ * - Ascending: "column" or "+column"
+ * - Descending: "-column"
+ * Multiple columns are comma-joined: "created,-rank"
+ */
+function compileOrderBy(orderBy: LoadSubsetOptions['orderBy']): Array<string> | undefined {
+  if (!orderBy || orderBy.length === 0) {
+    return undefined
+  }
+
+  return orderBy.map((clause) => {
+    // Extract field name from the expression
+    const expr = clause.expression
+    if (expr.type !== `ref` || !expr.path || expr.path.length === 0) {
+      // Only simple field references are supported
+      return null
+    }
+
+    const fieldName = expr.path.join(`.`)
+    // TrailBase uses prefix: - for descending, + or nothing for ascending
+    const prefix = clause.compareOptions?.direction === `desc` ? `-` : ``
+    return `${prefix}${fieldName}`
+  }).filter((x): x is string => x !== null)
+}
+
+/**
+ * Convert LoadSubsetOptions.where to TrailBase's filters format.
+ * TrailBase uses Filter objects with {column, op, value} structure.
+ *
+ * Note: Filter compilation is best-effort. Complex predicates or type mismatches
+ * (e.g., boolean values for INTEGER columns) may not compile correctly.
+ * In such cases, we return undefined and let client-side filtering handle it.
+ *
+ * Supported operators:
+ * - eq, gt, gte, lt, lte → equal, greaterThan, greaterThanEqual, lessThan, lessThanEqual
+ * - like → like
+ * - and, or → composite filters
+ */
+function compileFilters(where: LoadSubsetOptions['where']): Array<FilterOrComposite> | undefined {
+  if (!where) {
+    return undefined
+  }
+
+  try {
+    const result = compileExpression(where)
+    return result ? [result] : undefined
+  } catch {
+    // If filter compilation fails, return undefined and let client-side handle it
+    return undefined
+  }
+}
+
+/**
+ * Recursively compile a BasicExpression to TrailBase FilterOrComposite
+ */
+function compileExpression(expr: NonNullable<LoadSubsetOptions['where']>): FilterOrComposite | null {
+  if (expr.type === `val`) {
+    // Value expressions (true/false) don't map to filters
+    return null
+  }
+
+  if (expr.type === `func`) {
+    const func = expr as { type: 'func'; name: string; args: Array<any> }
+
+    // Handle logical operators
+    if (func.name === `and`) {
+      const compiled = func.args
+        .map((arg) => compileExpression(arg))
+        .filter((x): x is FilterOrComposite => x !== null)
+      if (compiled.length === 0) return null
+      if (compiled.length === 1) return compiled[0]!
+      return { and: compiled }
+    }
+
+    if (func.name === `or`) {
+      const compiled = func.args
+        .map((arg) => compileExpression(arg))
+        .filter((x): x is FilterOrComposite => x !== null)
+      if (compiled.length === 0) return null
+      if (compiled.length === 1) return compiled[0]!
+      return { or: compiled }
+    }
+
+    // Handle comparison operators
+    const opMap: Record<string, Filter['op']> = {
+      eq: `equal`,
+      gt: `greaterThan`,
+      gte: `greaterThanEqual`,
+      lt: `lessThan`,
+      lte: `lessThanEqual`,
+      like: `like`,
+    }
+
+    if (opMap[func.name]) {
+      const [refArg, valArg] = func.args
+      if (refArg?.type === `ref` && valArg?.type === `val`) {
+        const fieldName = refArg.path?.join(`.`)
+        if (!fieldName) return null
+
+        // TrailBase expects all values as strings
+        // Handle common type conversions
+        const value = valArg.value
+        let stringValue: string
+        if (value === null) {
+          stringValue = ``
+        } else if (typeof value === `boolean`) {
+          // Convert boolean to SQLite INTEGER convention (0/1)
+          stringValue = value ? `1` : `0`
+        } else if (value instanceof Date) {
+          stringValue = value.toISOString()
+        } else {
+          stringValue = String(value)
+        }
+
+        return {
+          column: fieldName,
+          op: opMap[func.name],
+          value: stringValue,
+        }
+      }
+    }
+
+    // Handle IN operator - convert to OR of equals
+    if (func.name === `in`) {
+      const [refArg, valArg] = func.args
+      if (refArg?.type === `ref` && valArg?.type === `val` && Array.isArray(valArg.value)) {
+        const fieldName = refArg.path?.join(`.`)
+        if (!fieldName) return null
+
+        const equalities = valArg.value.map((v): Filter => {
+          let stringValue: string
+          if (v === null) {
+            stringValue = ``
+          } else if (typeof v === `boolean`) {
+            stringValue = v ? `1` : `0`
+          } else if (v instanceof Date) {
+            stringValue = v.toISOString()
+          } else {
+            stringValue = String(v)
+          }
+          return {
+            column: fieldName,
+            op: `equal`,
+            value: stringValue,
+          }
+        })
+
+        if (equalities.length === 0) return null
+        if (equalities.length === 1) return equalities[0]!
+        return { or: equalities }
+      }
+    }
+  }
+
+  // Unsupported expression type
+  return null
+}
+
+/**
  * The mode of sync to use for the collection.
  * @default `eager`
  * @description
@@ -252,23 +412,54 @@ function createLoadSubsetDedupe<TRecord, TItem>({
       return
     }
 
-    // TrailBase doesn't support complex predicates via the simple list API
-    // We fetch a batch of records and let the client-side query handle filtering
+    // Compile the query parameters to TrailBase format
     const limit = opts.limit ?? 256
-    const response = await recordApi.list({ pagination: { limit } })
-    const records = response?.records ?? []
+    const order = compileOrderBy(opts.orderBy)
+    const filters = compileFilters(opts.where)
+
+    // Build the list options with proper ordering and filtering
+    const listOpts: ListOpts = {
+      pagination: { limit },
+    }
+
+    if (order && order.length > 0) {
+      listOpts.order = order
+    }
+
+    if (filters && filters.length > 0) {
+      listOpts.filters = filters
+    }
+
+    let response
+    let records: Array<TRecord>
+    let usedOrder = order
+
+    try {
+      response = await recordApi.list(listOpts)
+      records = response?.records ?? []
+    } catch {
+      // If the query fails (e.g., unsupported filter/order), retry without filters/order
+      // This allows client-side handling while ensuring data is still loaded
+      usedOrder = undefined
+      response = await recordApi.list({ pagination: { limit } })
+      records = response?.records ?? []
+    }
 
     if (records.length > 0) {
-      // Sort records by ID to ensure consistent insertion order (for deterministic tie-breaking)
-      // Decode base64 IDs to UUIDs for proper lexicographic sorting
-      const sortedRecords = [...records].sort((a: TRecord, b: TRecord) => {
-        const idA = decodeIdForSorting(a[`id` as keyof TRecord])
-        const idB = decodeIdForSorting(b[`id` as keyof TRecord])
-        return idA.localeCompare(idB)
-      })
+      // When no explicit ordering was successfully applied, sort by ID for consistent insertion order
+      // This ensures deterministic tie-breaking for queries
+      // When ordering IS successfully applied, TrailBase returns data in the correct order
+      let processedRecords = records
+      if (!usedOrder || usedOrder.length === 0) {
+        processedRecords = [...records].sort((a: TRecord, b: TRecord) => {
+          const idA = decodeIdForSorting(a[`id` as keyof TRecord])
+          const idB = decodeIdForSorting(b[`id` as keyof TRecord])
+          return idA.localeCompare(idB)
+        })
+      }
 
       begin()
-      for (const item of sortedRecords) {
+      for (const item of processedRecords) {
         write({ type: `insert`, value: parse(item) })
       }
       commit()
