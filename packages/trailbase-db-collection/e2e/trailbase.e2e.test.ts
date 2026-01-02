@@ -5,8 +5,8 @@
  * Uses shared test suites from @tanstack/db-collection-e2e.
  */
 
-import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest'
-import { createCollection, createLiveQueryCollection } from '@tanstack/db'
+import { afterAll, afterEach, beforeAll, describe, inject } from 'vitest'
+import { createCollection } from '@tanstack/db'
 import { initClient } from 'trailbase'
 import { trailBaseCollectionOptions } from '../src/trailbase'
 import {
@@ -646,95 +646,6 @@ describe(`TrailBase Collection E2E Tests`, () => {
   function getConfig() {
     return Promise.resolve(config)
   }
-
-  // Debug test to understand posts collection state
-  describe(`Debug Posts Collection`, () => {
-    it(`should verify posts collection size`, async () => {
-      const postsCollection = config.collections.onDemand.posts
-
-      // Trigger loadSubset
-      const query = createLiveQueryCollection((q) =>
-        q.from({ post: postsCollection }).orderBy(({ post }) => post.id).limit(100),
-      )
-      await query.preload()
-      await waitFor(() => query.size > 0, { timeout: 5000 })
-
-      console.log(`[DEBUG] Posts collection size: ${postsCollection.size}`)
-      console.log(`[DEBUG] Query size: ${query.size}`)
-
-      // Log first 5 posts
-      const posts = Array.from(query.state.values()).slice(0, 5)
-      posts.forEach((p, i) => {
-        console.log(`[DEBUG] Post ${i}: userId=${p.userId}, viewCount=${p.viewCount}`)
-      })
-
-      expect(query.size).toBeGreaterThan(1)
-      await query.cleanup()
-    })
-
-    it(`should test mixed direction orderBy`, async () => {
-      const postsCollection = config.collections.onDemand.posts
-
-      // This is the EXACT query pattern from the failing test
-      const query = createLiveQueryCollection((q) =>
-        q
-          .from({ post: postsCollection })
-          .orderBy(({ post }) => post.userId, `asc`)
-          .orderBy(({ post }) => post.viewCount, `desc`)
-          .limit(20),
-      )
-
-      console.log(`[DEBUG] Before preload - collection size: ${postsCollection.size}`)
-      await query.preload()
-      console.log(`[DEBUG] After preload - collection size: ${postsCollection.size}`)
-      console.log(`[DEBUG] After preload - query size: ${query.size}`)
-
-      // Log what we got
-      const posts = Array.from(query.state.values())
-      console.log(`[DEBUG] Final query size: ${posts.length}`)
-      posts.slice(0, 5).forEach((p, i) => {
-        console.log(`[DEBUG] Mixed Post ${i}: userId=${p.userId}, viewCount=${p.viewCount}`)
-      })
-
-      expect(query.size).toBeGreaterThanOrEqual(20)
-      await query.cleanup()
-    })
-
-    it(`should test users with desc then asc (passing pattern)`, async () => {
-      const usersCollection = config.collections.onDemand.users
-
-      // Check collection status
-      console.log(`[DEBUG USERS] Collection status: ${usersCollection.status}`)
-      console.log(`[DEBUG USERS] Collection syncMode: ${(usersCollection as any).syncMode}`)
-
-      // This is the pattern from PASSING tests
-      const query = createLiveQueryCollection((q) =>
-        q
-          .from({ user: usersCollection })
-          .orderBy(({ user }) => user.isActive, `desc`)
-          .orderBy(({ user }) => user.age, `asc`)
-          .limit(20),
-      )
-
-      console.log(`[DEBUG USERS] Before preload - collection size: ${usersCollection.size}`)
-      await query.preload()
-
-      // Wait a bit for async loading
-      await waitFor(() => usersCollection.size > 0, { timeout: 3000, message: `Users collection empty` })
-
-      console.log(`[DEBUG USERS] After preload - collection size: ${usersCollection.size}`)
-      console.log(`[DEBUG USERS] After preload - query size: ${query.size}`)
-
-      const users = Array.from(query.state.values())
-      console.log(`[DEBUG USERS] Final query size: ${users.length}`)
-      users.slice(0, 5).forEach((u, i) => {
-        console.log(`[DEBUG USERS] User ${i}: isActive=${u.isActive}, age=${u.age}`)
-      })
-
-      expect(query.size).toBeGreaterThanOrEqual(20)
-      await query.cleanup()
-    })
-  })
 
   // Run all shared test suites
   createPredicatesTestSuite(getConfig)
