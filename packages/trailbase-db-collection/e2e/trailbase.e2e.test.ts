@@ -583,7 +583,8 @@ describe(`TrailBase Collection E2E Tests`, () => {
       },
       setup: async () => {},
       afterEach: async () => {
-        // TrailBase doesn't need collection restart like Electric's on-demand mode
+        // TrailBase collections maintain their sync state across tests
+        // This is acceptable because the underlying data is the same
       },
       teardown: async () => {
         await Promise.all([
