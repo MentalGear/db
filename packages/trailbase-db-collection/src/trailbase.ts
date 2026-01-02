@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { Store } from '@tanstack/store'
+import { DeduplicatedLoadSubset } from '@tanstack/db'
 import {
   ExpectedDeleteTypeError,
   ExpectedInsertTypeError,
@@ -13,6 +14,7 @@ import type {
   CollectionConfig,
   DeleteMutationFnParams,
   InsertMutationFnParams,
+  LoadSubsetOptions,
   SyncConfig,
   SyncMode,
   UpdateMutationFnParams,
@@ -218,6 +220,63 @@ export type AwaitTxIdFn = (txId: string, timeout?: number) => Promise<boolean>
 
 export interface TrailBaseCollectionUtils extends UtilsRecord {
   cancel: () => void
+}
+
+/**
+ * Creates a DeduplicatedLoadSubset wrapper for TrailBase.
+ * This handles deduplication of loadSubset calls using the @tanstack/db pattern.
+ */
+function createLoadSubsetDedupe<TRecord, TItem>({
+  syncMode,
+  isFullSyncComplete,
+  begin,
+  write,
+  commit,
+  parse,
+  recordApi,
+  decodeIdForSorting,
+}: {
+  syncMode: TrailBaseSyncMode
+  isFullSyncComplete: () => boolean
+  begin: () => void
+  write: (mutation: { type: `insert` | `update` | `delete`; value: TItem }) => void
+  commit: () => void
+  parse: (record: TRecord) => TItem
+  recordApi: RecordApi<TRecord>
+  decodeIdForSorting: (id: unknown) => string
+}): DeduplicatedLoadSubset {
+  // The raw loadSubset function that actually fetches data
+  const loadSubset = async (opts: LoadSubsetOptions): Promise<void> => {
+    // In progressive mode after full sync is complete, no need to load more
+    if (syncMode === `progressive` && isFullSyncComplete()) {
+      return
+    }
+
+    // TrailBase doesn't support complex predicates via the simple list API
+    // We fetch a batch of records and let the client-side query handle filtering
+    const limit = opts.limit ?? 256
+    const response = await recordApi.list({ pagination: { limit } })
+    const records = response?.records ?? []
+
+    if (records.length > 0) {
+      // Sort records by ID to ensure consistent insertion order (for deterministic tie-breaking)
+      // Decode base64 IDs to UUIDs for proper lexicographic sorting
+      const sortedRecords = [...records].sort((a: TRecord, b: TRecord) => {
+        const idA = decodeIdForSorting(a[`id` as keyof TRecord])
+        const idB = decodeIdForSorting(b[`id` as keyof TRecord])
+        return idA.localeCompare(idB)
+      })
+
+      begin()
+      for (const item of sortedRecords) {
+        write({ type: `insert`, value: parse(item) })
+      }
+      commit()
+    }
+  }
+
+  // Wrap with DeduplicatedLoadSubset for proper deduplication handling
+  return new DeduplicatedLoadSubset({ loadSubset })
 }
 
 export function trailBaseCollectionOptions<
@@ -527,50 +586,21 @@ export function trailBaseCollectionOptions<
         return
       }
 
-      // Track if loadSubset has been called to prevent redundant fetches
-      // Using a promise to handle concurrent calls properly
-      let loadSubsetPromise: Promise<void> | null = null
-
-      // On-demand and progressive modes need loadSubset for query-driven data loading
-      const loadSubset = async (opts: { limit?: number } = {}): Promise<void> => {
-        // If already loading or completed, return the existing promise or resolve immediately
-        if (loadSubsetPromise) {
-          return loadSubsetPromise
-        }
-
-        // In progressive mode after full sync is complete, no need to load more
-        if (internalSyncMode === `progressive` && fullSyncCompleted) {
-          return
-        }
-
-        // Create the promise before any async work to prevent race conditions
-        loadSubsetPromise = (async () => {
-          const limit = opts.limit ?? 256
-          const response = await config.recordApi.list({ pagination: { limit } })
-          const records = response?.records ?? []
-
-          if (records.length > 0) {
-            // Sort records by ID to ensure consistent insertion order (for deterministic tie-breaking)
-            // Decode base64 IDs to UUIDs for proper lexicographic sorting
-            const sortedRecords = [...records].sort((a: TRecord, b: TRecord) => {
-              const idA = decodeIdForSorting(a[`id` as keyof TRecord])
-              const idB = decodeIdForSorting(b[`id` as keyof TRecord])
-              return idA.localeCompare(idB)
-            })
-
-            begin()
-            for (const item of sortedRecords) {
-              write({ type: `insert`, value: parse(item) })
-            }
-            commit()
-          }
-        })()
-
-        return loadSubsetPromise
-      }
+      // Create the deduplication wrapper for loadSubset
+      // This uses the @tanstack/db DeduplicatedLoadSubset pattern like Electric does
+      const loadSubsetDedupe = createLoadSubsetDedupe({
+        syncMode: internalSyncMode,
+        isFullSyncComplete: () => fullSyncCompleted,
+        begin,
+        write,
+        commit,
+        parse,
+        recordApi: config.recordApi,
+        decodeIdForSorting,
+      })
 
       return {
-        loadSubset,
+        loadSubset: loadSubsetDedupe.loadSubset,
         getSyncMetadata: () =>
           ({
             syncMode: internalSyncMode,
