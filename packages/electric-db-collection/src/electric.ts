@@ -1248,8 +1248,12 @@ function createElectricSync<T extends Row<unknown>>(
         }
 
         // Process tags if present
-        const tags = changeMessage.headers.tags
-        const removedTags = changeMessage.headers.removed_tags
+        const tags = (changeMessage.headers.tags ?? undefined) as
+          | Array<MoveTag>
+          | undefined
+        const removedTags = (changeMessage.headers.removed_tags ?? undefined) as
+          | Array<MoveTag>
+          | undefined
         const hasTags = tags || removedTags
 
         const rowId = collection.getKeyFromItem(changeMessage.value)
