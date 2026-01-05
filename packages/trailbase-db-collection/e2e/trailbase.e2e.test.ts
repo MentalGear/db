@@ -6,7 +6,7 @@
  *
  * ## Test Coverage: 114/118 (96.6%)
  *
- * ### Known Test Isolation Issues (4 tests)
+ * ### Known Limitation: On-Demand Sync with Mixed OrderBy (4 tests)
  *
  * The following tests fail when run in the full suite but PASS when run individually:
  *
@@ -15,16 +15,27 @@
  * 3. should use setWindow with mixed direction multi-column orderBy
  * 4. should handle insert appearing in matching queries
  *
- * Root cause: TrailBase's subscription-based sync has different timing characteristics
- * than Electric's shape streaming. The DeduplicatedLoadSubset pattern works correctly,
- * but the shared collection state across tests causes interference when earlier tests
- * load data that affects later tests' expectations.
+ * **Root cause**: This is a fundamental limitation of on-demand sync with mixed orderBy
+ * patterns on the same collection. When multiple queries with different orderBy clauses
+ * run on the same collection:
  *
- * Electric's afterEach pattern (cleanup → startSyncImmediate → preload) doesn't work
- * for TrailBase because the sync restart is slower and data isn't immediately available.
+ * 1. Query A (orderBy=X) loads top 20 records by X from TrailBase
+ * 2. Query B (orderBy=Y) loads top 20 records by Y from TrailBase
+ * 3. Collection now has up to 40 records from both queries
+ * 4. Client-side Query B sorts ALL 40 records by Y
+ * 5. Some of Query A's records may incorrectly appear in Query B's top 20
+ *
+ * This affects any on-demand sync implementation where:
+ * - Multiple queries with different orderBy share the same collection
+ * - Queries load limited subsets (not full data)
+ *
+ * **Workarounds**:
+ * - Use eager sync mode for collections that need multiple orderBy patterns
+ * - Use separate collection instances for fundamentally different query patterns
+ * - Use progressive mode which eventually loads all data
  *
  * These tests validate correct functionality when run in isolation, confirming the
- * underlying implementation is correct.
+ * underlying loadSubset implementation correctly fetches ordered data from TrailBase.
  */
 
 import { afterAll, afterEach, beforeAll, describe, inject } from 'vitest'
@@ -605,10 +616,9 @@ describe(`TrailBase Collection E2E Tests`, () => {
       },
       setup: async () => {},
       afterEach: async () => {
-        // Don't clean up on-demand collections between tests
-        // TrailBase's subscription-based sync is slower than Electric's shape streaming,
-        // and cleanup/restart causes timing issues that break tests.
-        // The DeduplicatedLoadSubset state persists, but this is acceptable for testing.
+        // Skip cleanup - TrailBase subscription receives delete events from
+        // cleanup that interfere with freshly loaded data on restart.
+        // This is a known limitation vs Electric which uses shape streaming.
       },
       teardown: async () => {
         await Promise.all([
